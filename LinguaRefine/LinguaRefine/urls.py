@@ -15,8 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include # Add this line to import the include function
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('spell_check.urls')) # Add this line to include the spell_check app's URLs
 ]

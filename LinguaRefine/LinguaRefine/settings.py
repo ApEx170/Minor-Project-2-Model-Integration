@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'spell_check',                       # Add this line to include the spell_check app
 ]
 
 MIDDLEWARE = [
@@ -54,7 +55,7 @@ ROOT_URLCONF = 'LinguaRefine.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['/LinguaRefine/spell_check/templates/'], # Add this line to include the spell_check app's templates directory
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
