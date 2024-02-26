@@ -149,6 +149,14 @@
         <p>Total character: <span id="total-conter">0</span></p>
         <p>Remaining: <span class="remaining-counter" id="remaining-counter">150</span></p>
     </div>
+
+    <!--"upload file"-->
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="fileUpload">Upload a file:</label>
+        <input type="file" id="fileUpload" name="fileUpload">
+    </form>
+
+    
 </div>
 
 <script>
