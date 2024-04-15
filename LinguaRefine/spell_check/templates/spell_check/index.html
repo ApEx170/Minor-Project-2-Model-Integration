@@ -143,10 +143,10 @@
 
     <textarea id="textarea" class="textarea" placeholder="Enter your text here" maxlength="150"></textarea>
 
-    <button onclick="copyText()">Copy Text</button>
+    <button onclick="correctGrammar()">Correct</button>
 
     <div class="counter-container">
-        <p>Total character: <span id="total-conter">0</span></p>
+        <p>Total character: <span id="total-counter">0</span></p>
         <p>Remaining: <span class="remaining-counter" id="remaining-counter">150</span></p>
     </div>
 
@@ -155,32 +155,60 @@
         <label for="fileUpload">Upload a file:</label>
         <input type="file" id="fileUpload" name="fileUpload">
     </form>
-
-    
 </div>
 
 <script>
     const charval = document.getElementById("textarea");
-    let totalCount = document.getElementById("total-conter");
-    let remainingCount = document.getElementById("remaining-counter");
+    const totalCount = document.getElementById("total-counter");
+    const remainingCount = document.getElementById("remaining-counter");
 
-    let userChar = 0;
-
-    // to update the character on screen
+    // Function to update character counter
     const updateCounter = () => {
-        userChar = charval.value.length;
+        const userChar = charval.value.length;
         totalCount.innerText = userChar;
         remainingCount.innerText = 150 - userChar;
     };
 
-    charval.addEventListener("keyup", updateCounter);
+    charval.addEventListener("input", updateCounter);
 
-    // to copy the text
-    const copyText = () => {
-        charval.select();
-        charval.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(charval.value);
+    // Function to send AJAX request for grammar check
+    const correctGrammar = () => {
+        const text = charval.value;
+        fetch('/grammar_check/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Add CSRF token
+            },
+            body: JSON.stringify({ input_text: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Corrected Text:', data.corrected_text);
+            // Update the textarea with the corrected text
+            charval.value = data.corrected_text;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     };
+
+    // Function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 </script>
+
 </body>
 </html>
