@@ -171,6 +171,16 @@
 
     charval.addEventListener("input", updateCounter);
 
+    // Function to display corrections below the result in the text area
+    const displayCorrections = (corrections) => {
+        const textarea = document.getElementById('textarea');
+        let correctionsText = 'Corrections:\n';
+        for (const [originalWord, correctedWord] of Object.entries(corrections)) {
+            correctionsText += `${originalWord} -> ${correctedWord}\n`;
+        }
+        textarea.value += '\n' + correctionsText;
+    };
+
     // Function to send AJAX request for grammar check
     const correctGrammar = () => {
         const text = charval.value;
@@ -185,8 +195,8 @@
         .then(response => response.json())
         .then(data => {
             console.log('Corrected Text:', data.corrected_text);
-            // Update the textarea with the corrected text
             charval.value = data.corrected_text;
+            displayCorrections(data.corrections);
         })
         .catch(error => {
             console.error('Error:', error);
