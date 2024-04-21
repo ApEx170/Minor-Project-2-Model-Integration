@@ -27,9 +27,40 @@
             background: rgb(255 255 255);
         }
 
+        /* Suggestions */
+        .suggestion {
+            cursor: pointer;
+            color: #2c2f32; /* Blue color for clickable links */
+        }
+
+        .suggestion:hover {
+            text-decoration: underline;
+            color: #0080ff; /* Underline effect on hover */
+        }
         .container {
             padding: 30px;
             margin-top: 80px;
+        }
+        .content-container {
+        display: flex;
+        justify-content: space-between;
+        }
+
+        /* Textarea container */
+        .textarea-container {
+            width: 70%; /* Adjust as needed */
+            position: relative;
+        }
+
+        /* List of corrections */
+        .corrections-list {
+            width: 30%;
+            max-height: 316px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
         }
 
         h2 {
@@ -137,11 +168,12 @@
     </style>
 </head>
 <body>
+
 <div class="container">
     <h2>Lingua Refine</h2>
     <p>Check your text for grammatical errors and the character count of your document.</p>
 
-    <textarea id="textarea" class="textarea" placeholder="Enter your text here" maxlength="150"></textarea>
+    <textarea id="textarea1" class="textarea" placeholder="Enter your text here" maxlength="150"></textarea>
 
     <button onclick="correctGrammar()">Correct</button>
 
@@ -152,13 +184,19 @@
 
     <!--"upload file"-->
     <form action="/upload" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
         <label for="fileUpload">Upload a file:</label>
         <input type="file" id="fileUpload" name="fileUpload">
     </form>
 </div>
+<div id="corrections-list" class="corrections-list"></div>
+
+</div>
+
 
 <script>
-    const charval = document.getElementById("textarea");
+    
+    const charval = document.getElementById("textarea1");
     const totalCount = document.getElementById("total-counter");
     const remainingCount = document.getElementById("remaining-counter");
 
@@ -171,38 +209,112 @@
 
     charval.addEventListener("input", updateCounter);
 
-    // Function to display corrections below the result in the text area
-    const displayCorrections = (corrections) => {
-        const textarea = document.getElementById('textarea');
-        let correctionsText = 'Corrections:\n';
-        for (const [originalWord, correctedWord] of Object.entries(corrections)) {
-            correctionsText += `${originalWord} -> ${correctedWord}\n`;
+    // Adjust the displayCorrectionsList function to handle multiple suggestions
+    const displayCorrectionsList = (corrections) => {
+        const correctionsList = document.getElementById('corrections-list');
+        correctionsList.innerHTML = ''; // Clear previous corrections
+        let counter = 0;
+        // Create list items for each correction
+        for (const [originalWord, suggestions] of Object.entries(corrections)) {
+            
+            const listItem = document.createElement('div');
+            listItem.classList.add('correction-item');
+            
+            const originalWordElement = document.createElement('span');
+            const id_name = "span"+counter;
+            originalWordElement.id=id_name;
+
+            if(suggestions[0]==0){
+                originalWordElement.textContent = originalWord + ': unable to find';
+                listItem.appendChild(originalWordElement);
+            }
+            else{
+                originalWordElement.textContent = originalWord + ': ';
+                listItem.appendChild(originalWordElement);
+    
+                // Create a span for each suggestion
+                for (let i = 0; i < suggestions.length; i++) {
+                    const suggestionElement = document.createElement('span');
+                    suggestionElement.textContent = suggestions[i];
+                    suggestionElement.classList.add('suggestion'); // Add a class for styling
+                    suggestionElement.setAttribute('data-original-word', originalWord); // Store the original word as data attribute
+                    suggestionElement.setAttribute('data-suggested-word', suggestions[i]); // Store the suggested word as data attribute
+                    suggestionElement.setAttribute('parent-id',id_name);
+                    listItem.appendChild(suggestionElement);
+    
+                    // Add click event listener to each suggestion
+                    suggestionElement.addEventListener('click', (event) => {
+                        const originalWord = event.target.getAttribute('data-original-word');
+                        const suggestedWord = event.target.getAttribute('data-suggested-word');
+                        replaceWord(originalWord, suggestedWord);
+
+                        const element1 = document.getElementById(event.target.getAttribute("parent-id"));
+                        const element2 =  event.target;
+                        
+                        element1.remove();
+                        element2.remove();
+                        
+                        
+                         // Replace the word in textarea
+                        // correctionsList.innerHTML = ''; // Clear corrections list
+                    });
+    
+                    // Add comma after suggestion if not the last one
+                    if (i < suggestions.length - 1) {
+                        listItem.appendChild(document.createTextNode(', '));
+                    }
+                }
+            }
+
+            correctionsList.appendChild(listItem);
+            counter+=1;
         }
-        textarea.value += '\n' + correctionsText;
     };
 
-    // Function to send AJAX request for grammar check
-    const correctGrammar = () => {
-        const text = charval.value;
-        fetch('/grammar_check/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken') // Add CSRF token
-            },
-            body: JSON.stringify({ input_text: text })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Corrected Text:', data.corrected_text);
-            charval.value = data.corrected_text;
-            displayCorrections(data.corrections);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+// Function to replace word in textarea
+    const replaceWord = (originalWord, suggestedWord) => {
+        const textArea = document.getElementById('textarea1');
+        const text = textArea.value;
+        const newText = text.replace(new RegExp('\\b' + originalWord + '\\b', 'g'), suggestedWord);
+        textArea.value = newText;
+        updateCounter();
     };
 
+    //  FIRST ITERATION FOR CORRECTION LIST
+    // const displayCorrectionsList = (corrections) => {
+    //     const correctionsList = document.getElementById('corrections-list');
+    //     correctionsList.innerHTML = ''; // Clear previous corrections
+
+    //     // C reate list items for each correction
+    //     for (const [originalWord, correctedWord] of Object.entries(corrections)) {
+    //         const listItem = document.createElement('div');
+    //         listItem.classList.add('correction-item');
+    //         listItem.textContent = `${originalWord} -> ${correctedWord}`;
+
+    //         // Add click event listener to update textarea
+    //         listItem.addEventListener('click', () => {
+    //             charval.value = charval.value.replace(new RegExp(originalWord, 'g'), correctedWord);
+    //             updateCounter(); // Update character counter
+    //             correctionsList.innerHTML = ''; // Clear corrections list
+    //         });
+
+    //         correctionsList.appendChild(listItem);
+    //     }
+    // };
+
+
+    // // ORIGNAL FUNCTION TO DISPLAY CORRECTION INSIDE TEXTAREA
+
+    // // Function to display corrections below the result in the text area
+    // const displayCorrections = (corrections) => {
+    //     const textarea = document.getElementById('textarea');
+    //     let correctionsText = 'Corrections:\n';
+    //     for (const [originalWord, correctedWord] of Object.entries(corrections)) {
+    //         correctionsText += `${originalWord} -> ${correctedWord}\n`;
+    //     }
+    //     textarea.value += '\n' + correctionsText;
+    // };
+    
     // Function to get CSRF token
     function getCookie(name) {
         let cookieValue = null;
@@ -218,6 +330,29 @@
         }
         return cookieValue;
     }
+    // Function to send AJAX request for grammar check
+    const correctGrammar = () => {
+        const text = charval.value;
+        fetch('grammar_check/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Add CSRF token
+            },
+            body: JSON.stringify({ input_text: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Corrected Text:', data.corrected_text);
+            charval.value = data.corrected_text;
+            displayCorrections(data.corrections);
+            displayCorrectionsList(data.corections);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    };
+
 </script>
 
 </body>
